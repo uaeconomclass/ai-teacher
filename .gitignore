@@ -1,0 +1,14 @@
+# Local tools
+composer.phar
+
+# Laravel / PHP defaults
+/vendor/
+/.env
+/.env.*
+!/env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
