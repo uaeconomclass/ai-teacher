@@ -5,7 +5,8 @@ composer.phar
 /vendor/
 /.env
 /.env.*
-!/env.example
+!.env.example
+.serena/
 
 # OS / editor
 .DS_Store
