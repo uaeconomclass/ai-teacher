@@ -258,6 +258,16 @@ input {
   color: #8d1114;
 }
 
+.mode-btn {
+  border-color: #7b87a8;
+}
+
+.mode-btn.active {
+  background: #e8f2ff;
+  border-color: #155eef;
+  color: #12328f;
+}
+
 .voice-status {
   font-size: 13px;
   color: var(--muted);

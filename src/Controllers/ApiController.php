@@ -39,6 +39,35 @@ final class ApiController
         }
     }
 
+    public function startSession(): void
+    {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw ?: '[]', true);
+
+        $level = strtoupper(trim((string) ($data['level'] ?? 'A1')));
+        $topic = trim((string) ($data['topic'] ?? 'a1-introductions'));
+        $requestedUserId = (int) ($data['user_id'] ?? 0);
+
+        try {
+            $dialogueService = new DialogueService();
+            $userId = $dialogueService->resolveUserId($requestedUserId);
+            $dialogueId = $dialogueService->createDialogue($userId, $level, $topic);
+
+            Response::json([
+                'data' => [
+                    'dialogue_id' => $dialogueId,
+                    'level' => $level,
+                    'topic' => $topic,
+                ],
+            ]);
+        } catch (Throwable $e) {
+            Response::json([
+                'error' => 'Session start failed',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function chat(): void
     {
         $raw = file_get_contents('php://input');

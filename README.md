@@ -29,6 +29,7 @@ Project scaffold and architecture setup in progress.
 
 ## API endpoints
 - `GET /api/topics?level=A1` dynamic topics by CEFR level
+- `POST /api/session/start` open a new conversation session and get `dialogue_id`
 - `POST /api/chat` text chat + AI reply + TTS audio_url
 - `POST /api/speech-to-text` multipart form with `audio` file
 - `POST /api/text-to-speech` JSON `{ "text": "..." }`

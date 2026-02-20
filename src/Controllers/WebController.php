@@ -80,6 +80,7 @@ final class WebController
       </form>
       <div class="voice-row">
         <button id="record-btn" type="button" class="voice-btn">Hold to Talk</button>
+        <button id="voice-mode-btn" type="button" class="voice-btn mode-btn">Voice Mode: OFF</button>
         <span id="voice-status" class="voice-status">Idle</span>
       </div>
       <audio id="player" class="player" controls></audio>

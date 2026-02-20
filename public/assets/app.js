@@ -6,14 +6,25 @@ const messages = document.getElementById('messages');
 const sendBtn = document.getElementById('send-btn');
 const chips = Array.from(document.querySelectorAll('.chip'));
 const recordBtn = document.getElementById('record-btn');
+const voiceModeBtn = document.getElementById('voice-mode-btn');
 const voiceStatus = document.getElementById('voice-status');
 const player = document.getElementById('player');
 
 let dialogueId = null;
 let isSending = false;
+
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
+
+let voiceModeOn = false;
+let streamRef = null;
+let audioCtx = null;
+let analyser = null;
+let silenceInterval = null;
+let lastLoudAt = 0;
+let heardSpeech = false;
+let chunkStartedAt = 0;
 
 const appendMessage = (sender, text) => {
   const row = document.createElement('div');
@@ -47,6 +58,22 @@ const loadTopics = async () => {
     opt.textContent = item.title;
     topicSelect.appendChild(opt);
   });
+};
+
+const startSession = async () => {
+  const payload = {
+    level: levelSelect.value,
+    topic: topicSelect.value || '',
+  };
+
+  const res = await fetch('/api/session/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Session start failed');
+  dialogueId = json.data?.dialogue_id || null;
 };
 
 const sendChatMessage = async (message) => {
@@ -107,50 +134,161 @@ const transcribeBlob = async (blob) => {
   return json.data?.text || '';
 };
 
-const startRecording = async () => {
-  if (isRecording) return;
+const ensureAudio = async () => {
+  if (streamRef) return;
+  streamRef = await navigator.mediaDevices.getUserMedia({ audio: true });
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioCtx.createMediaStreamSource(streamRef);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 512;
+  source.connect(analyser);
+};
+
+const stopSilenceWatcher = () => {
+  if (silenceInterval) {
+    clearInterval(silenceInterval);
+    silenceInterval = null;
+  }
+};
+
+const watchSilence = () => {
+  stopSilenceWatcher();
+  const data = new Uint8Array(analyser.fftSize);
+  const threshold = 18;
+  const silenceMs = 1200;
+  const minChunkMs = 1000;
+  lastLoudAt = Date.now();
+  heardSpeech = false;
+  chunkStartedAt = Date.now();
+
+  silenceInterval = setInterval(() => {
+    if (!isRecording || !analyser) return;
+    analyser.getByteTimeDomainData(data);
+
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      sum += Math.abs(data[i] - 128);
+    }
+    const level = sum / data.length;
+    const now = Date.now();
+
+    if (level > threshold) {
+      heardSpeech = true;
+      lastLoudAt = now;
+      return;
+    }
+
+    if (
+      heardSpeech &&
+      now - lastLoudAt > silenceMs &&
+      now - chunkStartedAt > minChunkMs &&
+      mediaRecorder &&
+      mediaRecorder.state === 'recording'
+    ) {
+      mediaRecorder.stop();
+    }
+  }, 120);
+};
+
+const startRecorderChunk = () => {
+  if (!streamRef || isRecording || isSending) return;
+  audioChunks = [];
+  try {
+    mediaRecorder = new MediaRecorder(streamRef, { mimeType: 'audio/webm' });
+  } catch (e) {
+    mediaRecorder = new MediaRecorder(streamRef);
+  }
+
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) audioChunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = async () => {
+    isRecording = false;
+    stopSilenceWatcher();
+    setVoiceState(voiceModeOn ? 'Processing...' : 'Idle');
+
+    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+    if (blob.size < 1200) {
+      if (voiceModeOn) {
+        setTimeout(() => startRecorderChunk(), 120);
+      }
+      return;
+    }
+
+    try {
+      const text = await transcribeBlob(blob);
+      if (text.trim()) {
+        await sendChatMessage(text);
+      }
+    } catch (e) {
+      appendMessage('ai', 'Voice recognition failed.');
+    }
+
+    if (voiceModeOn) {
+      setTimeout(() => startRecorderChunk(), 180);
+    } else {
+      setVoiceState('Idle');
+    }
+  };
+
+  mediaRecorder.start();
+  isRecording = true;
+  setVoiceState(voiceModeOn ? 'Voice mode listening...' : 'Recording...', true);
+  watchSilence();
+};
+
+const stopVoiceMode = async () => {
+  voiceModeOn = false;
+  voiceModeBtn.classList.remove('active');
+  voiceModeBtn.textContent = 'Voice Mode: OFF';
+  stopSilenceWatcher();
+
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+  } else {
+    setVoiceState('Idle');
+  }
+};
+
+const startVoiceMode = async () => {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     setVoiceState('Microphone not supported.');
     return;
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioChunks = [];
-    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) audioChunks.push(e.data);
-    };
-    mediaRecorder.start();
-    isRecording = true;
-    setVoiceState('Recording...', true);
+    await ensureAudio();
+    voiceModeOn = true;
+    voiceModeBtn.classList.add('active');
+    voiceModeBtn.textContent = 'Voice Mode: ON';
+    setVoiceState('Voice mode enabled');
+    startRecorderChunk();
+  } catch (e) {
+    setVoiceState('Microphone permission denied.');
+  }
+};
+
+const startRecording = async () => {
+  if (voiceModeOn || isRecording) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    setVoiceState('Microphone not supported.');
+    return;
+  }
+
+  try {
+    await ensureAudio();
+    startRecorderChunk();
   } catch (e) {
     setVoiceState('Microphone permission denied.');
   }
 };
 
 const stopRecording = async () => {
+  if (voiceModeOn) return;
   if (!isRecording || !mediaRecorder) return;
-
-  await new Promise((resolve) => {
-    mediaRecorder.onstop = resolve;
+  if (mediaRecorder.state === 'recording') {
     mediaRecorder.stop();
-  });
-
-  mediaRecorder.stream.getTracks().forEach((t) => t.stop());
-  isRecording = false;
-  setVoiceState('Transcribing...');
-
-  try {
-    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-    const text = await transcribeBlob(blob);
-    input.value = text;
-    setVoiceState('Done. Sending...');
-    await sendChatMessage(text);
-    input.value = '';
-    setVoiceState('Idle');
-  } catch (e) {
-    setVoiceState('Voice failed. Try again.');
   }
 };
 
@@ -163,9 +301,26 @@ form.addEventListener('submit', async (e) => {
 });
 
 levelSelect.addEventListener('change', () => {
-  loadTopics().catch(() => {
-    appendMessage('ai', 'Failed to load topics for level.');
-  });
+  loadTopics()
+    .then(() => startSession())
+    .then(() => {
+      messages.innerHTML = '';
+      appendMessage('ai', 'New session started.');
+    })
+    .catch(() => {
+      appendMessage('ai', 'Failed to load topics for level.');
+    });
+});
+
+topicSelect.addEventListener('change', () => {
+  startSession()
+    .then(() => {
+      messages.innerHTML = '';
+      appendMessage('ai', 'New session started.');
+    })
+    .catch(() => {
+      appendMessage('ai', 'Failed to start session.');
+    });
 });
 
 chips.forEach((chip) => {
@@ -188,6 +343,17 @@ recordBtn.addEventListener('touchend', (e) => {
   stopRecording();
 }, { passive: false });
 
-loadTopics().catch(() => {
-  appendMessage('ai', 'Failed to load topics.');
+voiceModeBtn.addEventListener('click', async () => {
+  if (voiceModeOn) {
+    await stopVoiceMode();
+  } else {
+    await startVoiceMode();
+  }
 });
+
+loadTopics()
+  .then(() => startSession())
+  .then(() => appendMessage('ai', 'Session ready. Start speaking.'))
+  .catch(() => {
+    appendMessage('ai', 'Failed to initialize app.');
+  });
