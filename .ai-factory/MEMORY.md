@@ -54,3 +54,19 @@ Date: 2026-02-20
 - Added TLS CA bundle flow for PHP cURL:
   - `certs/cacert.pem`
   - `.env.example` now includes `OPENAI_CA_BUNDLE`
+
+## Voice + Dynamic Topics Update
+- Topics are now dynamic from DB and filtered by level:
+  - `GET /api/topics?level=A1`
+  - `src/Services/TopicService.php`
+  - `src/Controllers/ApiController.php`
+- Migration now seeds CEFR topics (A1-C2):
+  - `scripts/migrate.php`
+- Added voice API:
+  - `POST /api/speech-to-text`
+  - `POST /api/text-to-speech`
+- Chat now returns `audio_url` for assistant reply and stores it in DB.
+- Frontend includes hold-to-talk microphone button and voice status:
+  - `src/Controllers/WebController.php`
+  - `public/assets/app.js`
+  - `public/assets/styles.css`

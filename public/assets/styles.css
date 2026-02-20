@@ -236,6 +236,39 @@ input {
   cursor: not-allowed;
 }
 
+.voice-row {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.voice-btn {
+  border: 1px solid #98a8cf;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.voice-btn.recording {
+  background: #ffe8e8;
+  border-color: #e5484d;
+  color: #8d1114;
+}
+
+.voice-status {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.player {
+  margin-top: 8px;
+  width: 100%;
+  height: 34px;
+}
+
 .footnote {
   margin: 10px 0 0;
   font-size: 12px;

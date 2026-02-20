@@ -78,6 +78,11 @@ final class WebController
         <input id="message" type="text" placeholder="Type your sentence in English..." autocomplete="off">
         <button id="send-btn" type="submit">Send</button>
       </form>
+      <div class="voice-row">
+        <button id="record-btn" type="button" class="voice-btn">Hold to Talk</button>
+        <span id="voice-status" class="voice-status">Idle</span>
+      </div>
+      <audio id="player" class="player" controls></audio>
     </section>
   </main>
   <script src="/assets/app.js"></script>

@@ -13,5 +13,7 @@ $router->get('/', [WebController::class, 'home']);
 $router->get('/api/health', [ApiController::class, 'health']);
 $router->get('/api/topics', [ApiController::class, 'topics']);
 $router->post('/api/chat', [ApiController::class, 'chat']);
+$router->post('/api/speech-to-text', [ApiController::class, 'speechToText']);
+$router->post('/api/text-to-speech', [ApiController::class, 'textToSpeech']);
 
 $router->dispatch($_SERVER['REQUEST_METHOD'] ?? 'GET', $_SERVER['REQUEST_URI'] ?? '/');

@@ -13,3 +13,6 @@ composer.phar
 Thumbs.db
 .idea/
 .vscode/
+
+# Runtime media
+public/media/tts/

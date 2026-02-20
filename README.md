@@ -27,6 +27,12 @@ Project scaffold and architecture setup in progress.
 3. Run DB migrations:
    - `php scripts/migrate.php`
 
+## API endpoints
+- `GET /api/topics?level=A1` dynamic topics by CEFR level
+- `POST /api/chat` text chat + AI reply + TTS audio_url
+- `POST /api/speech-to-text` multipart form with `audio` file
+- `POST /api/text-to-speech` JSON `{ "text": "..." }`
+
 ## Local MySQL (Docker)
 1. Start MySQL:
    - `docker compose up -d mysql`

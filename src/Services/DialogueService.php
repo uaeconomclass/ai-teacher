@@ -54,15 +54,16 @@ final class DialogueService
         return (int) $this->pdo->lastInsertId();
     }
 
-    public function addMessage(int $dialogueId, string $sender, string $text): void
+    public function addMessage(int $dialogueId, string $sender, string $text, ?string $audioUrl = null): void
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO dialogue_messages (dialogue_id, sender, text, audio_url) VALUES (:dialogue_id, :sender, :text, NULL)'
+            'INSERT INTO dialogue_messages (dialogue_id, sender, text, audio_url) VALUES (:dialogue_id, :sender, :text, :audio_url)'
         );
         $stmt->execute([
             'dialogue_id' => $dialogueId,
             'sender' => $sender,
             'text' => $text,
+            'audio_url' => $audioUrl,
         ]);
     }
 

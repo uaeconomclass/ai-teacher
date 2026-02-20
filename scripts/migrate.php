@@ -44,4 +44,39 @@ INSERT IGNORE INTO levels (id, code, title) VALUES
 SQL);
 
 echo "[OK] seed_levels\n";
+
+$topicSeed = [
+    'A1' => ['Introductions', 'Daily Routine', 'Food and Drinks', 'City Directions', 'Shopping Basics'],
+    'A2' => ['Travel Plans', 'Health and Appointments', 'Work Day', 'Housing and Services', 'Past Weekend Stories'],
+    'B1' => ['Career Goals', 'Relationships', 'Media Habits', 'Problem Solving', 'Culture and Lifestyle'],
+    'B2' => ['Business Talks', 'Technology and Society', 'Environment Debate', 'Negotiation Skills', 'Education Systems'],
+    'C1' => ['Leadership', 'Ethics and Decisions', 'Innovation', 'Intercultural Communication', 'Public Speaking'],
+    'C2' => ['Policy and Society', 'Advanced Debate', 'Expert Domains', 'Rhetoric and Persuasion', 'Nuance and Tone'],
+];
+
+$topicStmt = $pdo->prepare(
+    'INSERT IGNORE INTO topics (level_id, slug, title, position)
+     VALUES (
+       (SELECT id FROM levels WHERE code = :level_code LIMIT 1),
+       :slug,
+       :title,
+       :position
+     )'
+);
+
+foreach ($topicSeed as $levelCode => $titles) {
+    $position = 1;
+    foreach ($titles as $title) {
+        $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $title), '-'));
+        $topicStmt->execute([
+            'level_code' => $levelCode,
+            'slug' => strtolower($levelCode) . '-' . $slug,
+            'title' => $title,
+            'position' => $position,
+        ]);
+        $position++;
+    }
+}
+
+echo "[OK] seed_topics\n";
 echo "Migrations completed.\n";
