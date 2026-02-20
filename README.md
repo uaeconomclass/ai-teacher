@@ -2,11 +2,13 @@
 
 Voice-first platform for learning English by topics.
 
-## Current stack
-- Backend: Laravel (PHP 8.3+)
-- Database: MySQL or PostgreSQL
-- Queue/Cache: Redis (planned)
-- AI: OpenAI (STT + LLM + TTS)
+## Stack status
+Backend stack is not finalized yet.
+
+Candidates:
+- Laravel (PHP)
+- Node.js (NestJS/Express)
+- Other backend option to be decided
 
 ## MVP scope
 - Topic-based lessons
