@@ -1,0 +1,139 @@
+:root {
+  --bg: #f7f5ef;
+  --ink: #1d1b16;
+  --accent: #0e7a6d;
+  --card: #fffdf7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: radial-gradient(circle at 10% 10%, #fff 0%, var(--bg) 55%);
+  color: var(--ink);
+}
+
+.wrap {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 32px 20px 40px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.subtitle {
+  margin-top: 10px;
+  color: #464238;
+}
+
+.grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.top-grid {
+  margin-bottom: 16px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid #e9e2d4;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.card h2 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+
+.chat .row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.chat label {
+  width: 60px;
+  font-weight: 600;
+}
+
+.chat select,
+.chat input,
+.chat button {
+  border: 1px solid #d4c9b5;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.chat-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chat button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.messages {
+  border: 1px solid #e9e2d4;
+  border-radius: 10px;
+  background: #fff;
+  min-height: 180px;
+  max-height: 280px;
+  overflow: auto;
+  padding: 10px;
+}
+
+.msg {
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.msg.user {
+  color: #17324a;
+}
+
+.msg.ai {
+  color: #264a2c;
+}
+
+.code {
+  margin-top: 18px;
+  background: #111;
+  color: #9ff3e8;
+  border-radius: 12px;
+  padding: 14px;
+  font-family: Consolas, monospace;
+  overflow: auto;
+}
+
+.pill {
+  display: inline-block;
+  margin-top: 18px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #d3f6f0;
+  color: #0f5d53;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+a {
+  color: var(--accent);
+}
