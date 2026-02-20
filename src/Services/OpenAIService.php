@@ -29,15 +29,20 @@ final class OpenAIService
      * @param array<int, array{role: string, content: string}> $history
      * @return array{reply: string, tip: string}
      */
-    public function tutorReply(string $level, string $topic, array $history): array
+    public function tutorReply(string $level, string $topic, array $history, ?string $grammarFocus = null): array
     {
         if ($this->apiKey === '') {
             throw new RuntimeException('OPENAI_API_KEY is missing');
         }
 
+        $grammarLine = $grammarFocus !== null && trim($grammarFocus) !== ''
+            ? "Grammar focus: {$grammarFocus}."
+            : "Grammar focus: keep corrections level-appropriate.";
+
         $systemPrompt = <<<TEXT
 You are an English speaking tutor.
 Level: {$level}. Topic: {$topic}.
+{$grammarLine}
 Rules:
 - Keep reply concise (1-3 sentences).
 - Continue conversation naturally.

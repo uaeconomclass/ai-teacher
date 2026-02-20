@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\DialogueService;
+use App\Services\GrammarTopicService;
 use App\Services\OpenAIService;
 use App\Services\TopicService;
 use App\Support\Response;
@@ -34,6 +35,25 @@ final class ApiController
         } catch (Throwable $e) {
             Response::json([
                 'error' => 'Topics unavailable',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function grammarTopics(): void
+    {
+        $level = trim((string) ($_GET['level'] ?? ''));
+
+        try {
+            $grammarService = new GrammarTopicService();
+            $items = $grammarService->listByLevel($level !== '' ? $level : null);
+
+            Response::json([
+                'data' => $items,
+            ]);
+        } catch (Throwable $e) {
+            Response::json([
+                'error' => 'Grammar topics unavailable',
                 'details' => $e->getMessage(),
             ], 500);
         }
@@ -76,6 +96,7 @@ final class ApiController
         $message = trim((string) ($data['message'] ?? ''));
         $level = trim((string) ($data['level'] ?? 'A1'));
         $topic = trim((string) ($data['topic'] ?? 'introductions'));
+        $grammarFocus = trim((string) ($data['grammar_focus'] ?? ''));
         $dialogueId = (int) ($data['dialogue_id'] ?? 0);
         $requestedUserId = (int) ($data['user_id'] ?? 0);
 
@@ -100,7 +121,7 @@ final class ApiController
 
             $dialogueService->addMessage($dialogueId, 'user', $message);
             $history = $dialogueService->recentMessages($dialogueId, 12);
-            $ai = $openAIService->tutorReply($level, $topic, $history);
+            $ai = $openAIService->tutorReply($level, $topic, $history, $grammarFocus !== '' ? $grammarFocus : null);
             $reply = trim((string) ($ai['reply'] ?? ''));
             $tip = trim((string) ($ai['tip'] ?? ''));
             $audioUrl = null;

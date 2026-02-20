@@ -1,5 +1,6 @@
 const levelSelect = document.getElementById('level');
 const topicSelect = document.getElementById('topic');
+const grammarFocusSelect = document.getElementById('grammar-focus');
 const form = document.getElementById('chat-form');
 const input = document.getElementById('message');
 const messages = document.getElementById('messages');
@@ -60,6 +61,21 @@ const loadTopics = async () => {
   });
 };
 
+const loadGrammarTopics = async () => {
+  const level = levelSelect.value;
+  const res = await fetch(`/api/grammar-topics?level=${encodeURIComponent(level)}`);
+  const json = await res.json();
+  const items = json.data || [];
+  grammarFocusSelect.innerHTML = '';
+
+  items.forEach((item) => {
+    const opt = document.createElement('option');
+    opt.value = item.title;
+    opt.textContent = item.title;
+    grammarFocusSelect.appendChild(opt);
+  });
+};
+
 const startSession = async () => {
   const payload = {
     level: levelSelect.value,
@@ -86,6 +102,7 @@ const sendChatMessage = async (message) => {
   const payload = {
     level: levelSelect.value,
     topic: topicSelect.value || 'introductions',
+    grammar_focus: grammarFocusSelect.value || '',
     message: message.trim(),
     dialogue_id: dialogueId,
   };
@@ -301,7 +318,7 @@ form.addEventListener('submit', async (e) => {
 });
 
 levelSelect.addEventListener('change', () => {
-  loadTopics()
+  Promise.all([loadTopics(), loadGrammarTopics()])
     .then(() => startSession())
     .then(() => {
       messages.innerHTML = '';
@@ -352,6 +369,7 @@ voiceModeBtn.addEventListener('click', async () => {
 });
 
 loadTopics()
+  .then(() => loadGrammarTopics())
   .then(() => startSession())
   .then(() => appendMessage('ai', 'Session ready. Start speaking.'))
   .catch(() => {

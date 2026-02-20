@@ -6,6 +6,7 @@ require_once __DIR__ . '/../src/bootstrap.php';
 use App\Database\Database;
 use App\Database\Migrations\CreateDialogueMessagesTable;
 use App\Database\Migrations\CreateDialoguesTable;
+use App\Database\Migrations\CreateGrammarTopicsTable;
 use App\Database\Migrations\CreateLessonsTable;
 use App\Database\Migrations\CreateLevelsTable;
 use App\Database\Migrations\CreateTopicsTable;
@@ -20,6 +21,7 @@ $migrations = [
     new CreateUsersTable(),
     new CreateLevelsTable(),
     new CreateTopicsTable(),
+    new CreateGrammarTopicsTable(),
     new CreateLessonsTable(),
     new CreateDialoguesTable(),
     new CreateDialogueMessagesTable(),
@@ -79,4 +81,39 @@ foreach ($topicSeed as $levelCode => $titles) {
 }
 
 echo "[OK] seed_topics\n";
+
+$grammarSeed = [
+    'A1' => ['To be', 'Present Simple', 'Articles a/an/the', 'There is/There are', 'Can/Can not'],
+    'A2' => ['Past Simple', 'Going to and Will', 'Present Continuous', 'Comparatives', 'Countable and Uncountable'],
+    'B1' => ['Present Perfect', 'Past Continuous', 'First Conditional', 'Second Conditional', 'Modal Verbs'],
+    'B2' => ['Past Perfect', 'Passive Voice', 'Reported Speech', 'Mixed Conditionals', 'Advanced Modals'],
+    'C1' => ['Advanced Clauses', 'Inversion', 'Hedging Language', 'Discourse Markers', 'Cleft Sentences'],
+    'C2' => ['Rhetorical Structures', 'Nuanced Modality', 'Register Shifting', 'Complex Conditionals', 'Advanced Cohesion'],
+];
+
+$grammarStmt = $pdo->prepare(
+    'INSERT IGNORE INTO grammar_topics (level_id, slug, title, position)
+     VALUES (
+       (SELECT id FROM levels WHERE code = :level_code LIMIT 1),
+       :slug,
+       :title,
+       :position
+     )'
+);
+
+foreach ($grammarSeed as $levelCode => $titles) {
+    $position = 1;
+    foreach ($titles as $title) {
+        $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $title), '-'));
+        $grammarStmt->execute([
+            'level_code' => $levelCode,
+            'slug' => strtolower($levelCode) . '-' . $slug,
+            'title' => $title,
+            'position' => $position,
+        ]);
+        $position++;
+    }
+}
+
+echo "[OK] seed_grammar_topics\n";
 echo "Migrations completed.\n";

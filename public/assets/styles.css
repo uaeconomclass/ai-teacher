@@ -149,7 +149,7 @@ h1 {
 .controls {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 
@@ -294,6 +294,10 @@ code {
 
 @media (max-width: 920px) {
   .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .controls {
     grid-template-columns: 1fr;
   }
 

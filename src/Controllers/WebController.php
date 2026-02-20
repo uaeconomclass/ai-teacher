@@ -70,6 +70,10 @@ final class WebController
           <span>Topic</span>
           <select id="topic"></select>
         </label>
+        <label>
+          <span>Grammar Focus</span>
+          <select id="grammar-focus"></select>
+        </label>
       </div>
 
       <div id="messages" class="messages"></div>
