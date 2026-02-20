@@ -3,7 +3,6 @@ const topicSelect = document.getElementById('topic');
 const form = document.getElementById('chat-form');
 const input = document.getElementById('message');
 const messages = document.getElementById('messages');
-const apiStatus = document.getElementById('api-status');
 const sendBtn = document.getElementById('send-btn');
 const chips = Array.from(document.querySelectorAll('.chip'));
 let dialogueId = null;
@@ -21,16 +20,6 @@ const setSending = (value) => {
   isSending = value;
   sendBtn.disabled = value;
   sendBtn.textContent = value ? 'Sending...' : 'Send';
-};
-
-const checkHealth = async () => {
-  try {
-    const res = await fetch('/api/health');
-    const json = await res.json();
-    apiStatus.textContent = res.ok ? json.status.toUpperCase() : 'DOWN';
-  } catch (e) {
-    apiStatus.textContent = 'DOWN';
-  }
 };
 
 const loadTopics = async () => {
@@ -96,7 +85,6 @@ chips.forEach((chip) => {
   });
 });
 
-checkHealth();
 loadTopics().catch(() => {
   appendMessage('ai', 'Failed to load topics.');
 });

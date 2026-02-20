@@ -27,15 +27,15 @@ final class WebController
         <strong>AI Teacher</strong>
       </div>
       <h1>Speak English<br>Every Day</h1>
-      <p class="subtitle">Minimal MVP interface with a real AI conversation loop.</p>
+      <p class="subtitle">Practice real conversation by level and topic with instant feedback.</p>
       <div class="stats">
         <div class="stat">
-          <span>Stack</span>
-          <strong>PHP + MySQL</strong>
+          <span>Mode</span>
+          <strong>Speaking Practice</strong>
         </div>
         <div class="stat">
-          <span>Chat API</span>
-          <strong id="api-status">Checking...</strong>
+          <span>Focus</span>
+          <strong>Fluency + Accuracy</strong>
         </div>
       </div>
       <div class="chips">
@@ -43,14 +43,14 @@ final class WebController
         <button type="button" class="chip" data-text="Can we practice daily routine?">Routine</button>
         <button type="button" class="chip" data-text="Help me speak about travel plans.">Travel</button>
       </div>
-      <p class="hint">Voice (STT/TTS) is the next step.</p>
+      <p class="hint">Keep answers short and natural. Build confidence with daily sessions.</p>
     </aside>
 
     <section class="chat-panel">
       <header class="chat-head">
         <div>
           <h2>Conversation</h2>
-          <p>Pick level and topic, then start speaking in text mode.</p>
+          <p>Choose your level and topic, then start your session.</p>
         </div>
       </header>
 
@@ -78,7 +78,6 @@ final class WebController
         <input id="message" type="text" placeholder="Type your sentence in English..." autocomplete="off">
         <button id="send-btn" type="submit">Send</button>
       </form>
-      <p class="footnote">Command: <code>php -S localhost:8000 -t public</code></p>
     </section>
   </main>
   <script src="/assets/app.js"></script>
