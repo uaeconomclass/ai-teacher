@@ -3,6 +3,7 @@ const topicSelect = document.getElementById('topic');
 const form = document.getElementById('chat-form');
 const input = document.getElementById('message');
 const messages = document.getElementById('messages');
+let dialogueId = null;
 
 const appendMessage = (sender, text) => {
   const row = document.createElement('div');
@@ -37,7 +38,8 @@ form.addEventListener('submit', async (e) => {
   const payload = {
     level: levelSelect.value,
     topic: topicSelect.value || 'introductions',
-    message
+    message,
+    dialogue_id: dialogueId,
   };
 
   const res = await fetch('/api/chat', {
@@ -50,6 +52,10 @@ form.addEventListener('submit', async (e) => {
   if (!res.ok) {
     appendMessage('ai', json.error || 'Request failed');
     return;
+  }
+
+  if (json.data?.dialogue_id) {
+    dialogueId = json.data.dialogue_id;
   }
 
   appendMessage('ai', json.data.reply);

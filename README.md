@@ -26,3 +26,15 @@ Project scaffold and architecture setup in progress.
    - `php -S localhost:8000 -t public`
 3. Run DB migrations:
    - `php scripts/migrate.php`
+
+## Local MySQL (Docker)
+1. Start MySQL:
+   - `docker compose up -d mysql`
+2. Set DB vars in `.env`:
+   - `DB_HOST=127.0.0.1`
+   - `DB_PORT=3306`
+   - `DB_NAME=ai_teacher`
+   - `DB_USER=root`
+   - `DB_PASS=root`
+3. Run migrations:
+   - `php scripts/migrate.php`

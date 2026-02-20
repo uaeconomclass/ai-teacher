@@ -40,3 +40,17 @@ Date: 2026-02-20
 - Updated UI styles for chat:
   - `public/assets/styles.css`
 - Current `/api/chat` response is mock and ready to be replaced with OpenAI integration.
+
+## OpenAI + DB Runtime Update
+- Replaced mock chat with real OpenAI integration:
+  - `src/Services/OpenAIService.php`
+  - `src/Controllers/ApiController.php`
+- Added dialogue persistence service:
+  - `src/Services/DialogueService.php`
+- Frontend now persists conversation session via `dialogue_id`:
+  - `public/assets/app.js`
+- Added local MySQL runtime setup:
+  - `docker-compose.yml`
+- Added TLS CA bundle flow for PHP cURL:
+  - `certs/cacert.pem`
+  - `.env.example` now includes `OPENAI_CA_BUNDLE`
