@@ -19,6 +19,10 @@ Candidates:
 ## Project status
 Project scaffold and architecture setup in progress.
 
+## Curriculum docs
+- Full level map: `docs/CURRICULUM_LEVELS_FULL.md`
+- Speaking-first CEFR plan: `docs/SPEAKING_CURRICULUM_CEFR.md`
+
 ## Quick start
 1. Copy env:
    - `Copy-Item .env.example .env`
