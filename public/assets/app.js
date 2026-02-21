@@ -13,6 +13,8 @@ const player = document.getElementById('player');
 const promptPreviewText = document.getElementById('prompt-preview-text');
 const copyPromptBtn = document.getElementById('copy-prompt-btn');
 const promptCopyStatus = document.getElementById('prompt-copy-status');
+const browserSpeech = window.speechSynthesis || null;
+const SETTINGS_STORAGE_KEY = 'ai_teacher_ui_settings_v1';
 
 let dialogueId = null;
 let isSending = false;
@@ -29,6 +31,35 @@ let silenceInterval = null;
 let lastLoudAt = 0;
 let heardSpeech = false;
 let chunkStartedAt = 0;
+
+const readSavedSettings = () => {
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return {};
+    return parsed;
+  } catch (e) {
+    return {};
+  }
+};
+
+const hasSelectOption = (select, value) => Array.from(select.options).some((opt) => opt.value === value);
+
+const saveSettings = () => {
+  const settings = {
+    mode: modeSelect.value || 'conversation',
+    level: levelSelect.value || 'A1',
+    topic: topicSelect.value || '',
+    grammarFocus: grammarFocusSelect.value || '',
+  };
+
+  try {
+    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch (e) {
+    // no-op
+  }
+};
 
 const appendMessage = (sender, text) => {
   const row = document.createElement('div');
@@ -47,6 +78,16 @@ const setSending = (value) => {
 const setVoiceState = (text, recording = false) => {
   voiceStatus.textContent = text;
   recordBtn.classList.toggle('recording', recording);
+};
+
+const speakWithBrowserTts = (text) => {
+  if (!browserSpeech || !text || !text.trim()) return;
+  browserSpeech.cancel();
+  const utterance = new SpeechSynthesisUtterance(text.trim());
+  utterance.lang = 'en-US';
+  utterance.rate = 0.95;
+  utterance.pitch = 1.0;
+  browserSpeech.speak(utterance);
 };
 
 const setMessagePlaceholder = () => {
@@ -127,6 +168,7 @@ const sendChatMessage = async (message) => {
 
   const payload = {
     mode: modeSelect.value || 'conversation',
+    tts_mode: 'browser',
     level: levelSelect.value,
     topic: topicSelect.value || 'introductions',
     grammar_focus: grammarFocusSelect.value || '',
@@ -153,14 +195,10 @@ const sendChatMessage = async (message) => {
 
     if (json.data?.reply) {
       appendMessage('ai', json.data.reply);
+      speakWithBrowserTts(json.data.reply);
     }
     if (json.data?.feedback?.tip) {
       appendMessage('ai', `Tip: ${json.data.feedback.tip}`);
-    }
-
-    if (json.data?.audio_url) {
-      player.src = json.data.audio_url;
-      player.play().catch(() => {});
     }
   } catch (e) {
     appendMessage('ai', 'Network error. Try again.');
@@ -358,6 +396,7 @@ form.addEventListener('submit', async (e) => {
 
 modeSelect.addEventListener('change', () => {
   setMessagePlaceholder();
+  saveSettings();
   const readyMessage = modeSelect.value === 'lesson'
     ? 'Lesson mode ready. I will send a Ukrainian sentence, and you translate it to English.'
     : 'New conversation session started.';
@@ -369,6 +408,7 @@ levelSelect.addEventListener('change', () => {
     .then(() => loadPromptPreview())
     .then(() => startSession())
     .then(() => {
+      saveSettings();
       messages.innerHTML = '';
       appendMessage('ai', 'New session started.');
     })
@@ -378,10 +418,12 @@ levelSelect.addEventListener('change', () => {
 });
 
 topicSelect.addEventListener('change', () => {
+  saveSettings();
   restartSession('New session started.');
 });
 
 grammarFocusSelect.addEventListener('change', () => {
+  saveSettings();
   loadPromptPreview().catch(() => {
     promptPreviewText.value = 'Failed to load prompt preview.';
   });
@@ -422,14 +464,34 @@ voiceModeBtn.addEventListener('click', async () => {
   }
 });
 
-loadTopics()
-  .then(() => loadGrammarTopics())
-  .then(() => loadPromptPreview())
-  .then(() => startSession())
-  .then(() => {
-    setMessagePlaceholder();
-    appendMessage('ai', 'Session ready. Start speaking.');
-  })
-  .catch(() => {
-    appendMessage('ai', 'Failed to initialize app.');
-  });
+const initApp = async () => {
+  const saved = readSavedSettings();
+
+  if (typeof saved.mode === 'string' && hasSelectOption(modeSelect, saved.mode)) {
+    modeSelect.value = saved.mode;
+  }
+  if (typeof saved.level === 'string' && hasSelectOption(levelSelect, saved.level)) {
+    levelSelect.value = saved.level;
+  }
+
+  setMessagePlaceholder();
+
+  await loadTopics();
+  if (typeof saved.topic === 'string' && hasSelectOption(topicSelect, saved.topic)) {
+    topicSelect.value = saved.topic;
+  }
+
+  await loadGrammarTopics();
+  if (typeof saved.grammarFocus === 'string' && hasSelectOption(grammarFocusSelect, saved.grammarFocus)) {
+    grammarFocusSelect.value = saved.grammarFocus;
+  }
+
+  await loadPromptPreview();
+  await startSession();
+  saveSettings();
+  appendMessage('ai', 'Session ready. Start speaking.');
+};
+
+initApp().catch(() => {
+  appendMessage('ai', 'Failed to initialize app.');
+});

@@ -129,6 +129,7 @@ final class ApiController
         $topic = trim((string) ($data['topic'] ?? 'introductions'));
         $grammarFocus = trim((string) ($data['grammar_focus'] ?? ''));
         $mode = strtolower(trim((string) ($data['mode'] ?? 'conversation')));
+        $ttsMode = strtolower(trim((string) ($data['tts_mode'] ?? 'server')));
         $dialogueId = (int) ($data['dialogue_id'] ?? 0);
         $requestedUserId = (int) ($data['user_id'] ?? 0);
 
@@ -168,11 +169,13 @@ final class ApiController
                 $reply = 'Let us continue. Tell me more.';
             }
 
-            try {
-                $tts = $openAIService->synthesizeSpeech($reply);
-                $audioUrl = $this->storeAudioBytes($tts['bytes'], '.mp3');
-            } catch (Throwable $e) {
-                $audioUrl = null;
+            if ($ttsMode !== 'browser') {
+                try {
+                    $tts = $openAIService->synthesizeSpeech($reply);
+                    $audioUrl = $this->storeAudioBytes($tts['bytes'], '.mp3');
+                } catch (Throwable $e) {
+                    $audioUrl = null;
+                }
             }
 
             $dialogueService->addMessage($dialogueId, 'assistant', $reply, $audioUrl);

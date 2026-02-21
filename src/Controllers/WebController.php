@@ -28,6 +28,15 @@ final class WebController
       </div>
       <h1>Speak English<br>Every Day</h1>
       <p class="subtitle">Practice real conversation by level and topic with instant feedback.</p>
+
+      <div class="prompt-preview">
+        <div class="prompt-head">
+          <strong>Prompt Preview</strong>
+          <button id="copy-prompt-btn" type="button">Copy Prompt</button>
+        </div>
+        <textarea id="prompt-preview-text" readonly></textarea>
+        <p id="prompt-copy-status" class="prompt-copy-status"></p>
+      </div>
     </aside>
 
     <section class="chat-panel">
@@ -65,15 +74,6 @@ final class WebController
           <span>Grammar Focus</span>
           <select id="grammar-focus"></select>
         </label>
-      </div>
-
-      <div class="prompt-preview">
-        <div class="prompt-head">
-          <strong>Prompt Preview</strong>
-          <button id="copy-prompt-btn" type="button">Copy Prompt</button>
-        </div>
-        <textarea id="prompt-preview-text" readonly></textarea>
-        <p id="prompt-copy-status" class="prompt-copy-status"></p>
       </div>
 
       <div id="messages" class="messages"></div>
