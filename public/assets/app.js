@@ -147,9 +147,10 @@ const startSession = async () => {
     mode: modeSelect.value || 'conversation',
     level: levelSelect.value,
     topic: topicSelect.value || '',
+    grammar_focus: grammarFocusSelect.value || '',
   };
 
-  const res = await fetch('/api/session/start', {
+  const res = await fetch('/api/session/apply-filters', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -424,9 +425,7 @@ topicSelect.addEventListener('change', () => {
 
 grammarFocusSelect.addEventListener('change', () => {
   saveSettings();
-  loadPromptPreview().catch(() => {
-    promptPreviewText.value = 'Failed to load prompt preview.';
-  });
+  restartSession('New session started.');
 });
 
 copyPromptBtn.addEventListener('click', async () => {

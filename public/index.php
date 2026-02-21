@@ -15,6 +15,7 @@ $router->get('/api/topics', [ApiController::class, 'topics']);
 $router->get('/api/grammar-topics', [ApiController::class, 'grammarTopics']);
 $router->get('/api/prompt-preview', [ApiController::class, 'promptPreview']);
 $router->post('/api/session/start', [ApiController::class, 'startSession']);
+$router->post('/api/session/apply-filters', [ApiController::class, 'applySessionFilters']);
 $router->post('/api/chat', [ApiController::class, 'chat']);
 $router->post('/api/speech-to-text', [ApiController::class, 'speechToText']);
 $router->post('/api/text-to-speech', [ApiController::class, 'textToSpeech']);

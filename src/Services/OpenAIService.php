@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\Config;
 use RuntimeException;
 
 final class OpenAIService
@@ -16,12 +17,12 @@ final class OpenAIService
 
     public function __construct()
     {
-        $this->apiKey = trim((string) ($_ENV['OPENAI_API_KEY'] ?? ''));
-        $this->model = trim((string) ($_ENV['OPENAI_MODEL'] ?? 'gpt-4o-mini'));
-        $this->sttModel = trim((string) ($_ENV['OPENAI_STT_MODEL'] ?? 'gpt-4o-mini-transcribe'));
-        $this->ttsModel = trim((string) ($_ENV['OPENAI_TTS_MODEL'] ?? 'gpt-4o-mini-tts'));
-        $this->ttsVoice = trim((string) ($_ENV['OPENAI_TTS_VOICE'] ?? 'alloy'));
-        $configuredCa = trim((string) ($_ENV['OPENAI_CA_BUNDLE'] ?? 'certs/cacert.pem'));
+        $this->apiKey = Config::getString('OPENAI_API_KEY');
+        $this->model = Config::getString('OPENAI_MODEL', 'gpt-4o-mini');
+        $this->sttModel = Config::getString('OPENAI_STT_MODEL', 'gpt-4o-mini-transcribe');
+        $this->ttsModel = Config::getString('OPENAI_TTS_MODEL', 'gpt-4o-mini-tts');
+        $this->ttsVoice = Config::getString('OPENAI_TTS_VOICE', 'alloy');
+        $configuredCa = Config::getString('OPENAI_CA_BUNDLE', 'certs/cacert.pem');
         $this->caBundle = $this->resolveCaBundlePath($configuredCa);
     }
 

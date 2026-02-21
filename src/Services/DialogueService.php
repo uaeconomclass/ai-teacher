@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Database\Database;
+use App\Support\Config;
 use PDO;
 
 final class DialogueService
@@ -94,8 +95,8 @@ final class DialogueService
 
     private function ensureDemoUser(): int
     {
-        $email = $_ENV['DEMO_USER_EMAIL'] ?? 'demo@ai-teacher.local';
-        $displayName = $_ENV['DEMO_USER_NAME'] ?? 'Demo User';
+        $email = Config::getString('DEMO_USER_EMAIL', 'demo@ai-teacher.local');
+        $displayName = Config::getString('DEMO_USER_NAME', 'Demo User');
 
         $stmt = $this->pdo->prepare(
             'INSERT IGNORE INTO users (email, password_hash, role, display_name) VALUES (:email, :password_hash, :role, :display_name)'

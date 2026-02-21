@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Services\DialogueService;
 use App\Services\GrammarTopicService;
 use App\Services\OpenAIService;
+use App\Services\SessionService;
 use App\Services\TopicService;
+use App\Services\TutorEngine;
 use App\Support\Response;
+use RuntimeException;
 use Throwable;
 
 final class ApiController
@@ -90,26 +92,19 @@ final class ApiController
 
     public function startSession(): void
     {
-        $raw = file_get_contents('php://input');
-        $data = json_decode($raw ?: '[]', true);
+        $data = $this->jsonBody();
 
         $level = strtoupper(trim((string) ($data['level'] ?? 'A1')));
-        $topic = trim((string) ($data['topic'] ?? 'a1-introductions'));
+        $topic = trim((string) ($data['topic'] ?? 'introductions'));
         $mode = strtolower(trim((string) ($data['mode'] ?? 'conversation')));
+        $grammarFocus = trim((string) ($data['grammar_focus'] ?? ''));
         $requestedUserId = (int) ($data['user_id'] ?? 0);
 
         try {
-            $dialogueService = new DialogueService();
-            $userId = $dialogueService->resolveUserId($requestedUserId);
-            $dialogueId = $dialogueService->createDialogue($userId, $level, $topic);
-
+            $sessionService = new SessionService();
+            $session = $sessionService->applyFilters($requestedUserId, $mode, $level, $topic, $grammarFocus);
             Response::json([
-                'data' => [
-                    'dialogue_id' => $dialogueId,
-                    'level' => $level,
-                    'topic' => $topic,
-                    'mode' => $mode === 'lesson' ? 'lesson' : 'conversation',
-                ],
+                'data' => $session,
             ]);
         } catch (Throwable $e) {
             Response::json([
@@ -119,17 +114,21 @@ final class ApiController
         }
     }
 
+    public function applySessionFilters(): void
+    {
+        $this->startSession();
+    }
+
     public function chat(): void
     {
-        $raw = file_get_contents('php://input');
-        $data = json_decode($raw ?: '[]', true);
+        $data = $this->jsonBody();
 
         $message = trim((string) ($data['message'] ?? ''));
         $level = trim((string) ($data['level'] ?? 'A1'));
         $topic = trim((string) ($data['topic'] ?? 'introductions'));
         $grammarFocus = trim((string) ($data['grammar_focus'] ?? ''));
         $mode = strtolower(trim((string) ($data['mode'] ?? 'conversation')));
-        $ttsMode = strtolower(trim((string) ($data['tts_mode'] ?? 'server')));
+        $ttsMode = strtolower(trim((string) ($data['tts_mode'] ?? 'browser')));
         $dialogueId = (int) ($data['dialogue_id'] ?? 0);
         $requestedUserId = (int) ($data['user_id'] ?? 0);
 
@@ -139,62 +138,25 @@ final class ApiController
         }
 
         try {
-            $dialogueService = new DialogueService();
-            $openAIService = new OpenAIService();
-
-            $userId = $dialogueService->resolveUserId($requestedUserId);
-            if ($dialogueId > 0 && !$dialogueService->dialogueBelongsToUser($dialogueId, $userId)) {
-                Response::json(['error' => 'Dialogue not found for user'], 404);
-                return;
-            }
-
-            if ($dialogueId <= 0) {
-                $dialogueId = $dialogueService->createDialogue($userId, $level, $topic);
-            }
-
-            $dialogueService->addMessage($dialogueId, 'user', $message);
-            $history = $dialogueService->recentMessages($dialogueId, 12);
-            $ai = $openAIService->tutorReply(
+            $tutorEngine = new TutorEngine();
+            $result = $tutorEngine->handleTurn(
+                $requestedUserId,
+                $dialogueId,
+                $mode,
                 $level,
                 $topic,
-                $history,
-                $grammarFocus !== '' ? $grammarFocus : null,
-                $mode === 'lesson' ? 'lesson' : 'conversation'
+                $grammarFocus,
+                $message,
+                $ttsMode
             );
-            $reply = trim((string) ($ai['reply'] ?? ''));
-            $tip = trim((string) ($ai['tip'] ?? ''));
-            $audioUrl = null;
-
-            if ($reply === '') {
-                $reply = 'Let us continue. Tell me more.';
-            }
-
-            if ($ttsMode !== 'browser') {
-                try {
-                    $tts = $openAIService->synthesizeSpeech($reply);
-                    $audioUrl = $this->storeAudioBytes($tts['bytes'], '.mp3');
-                } catch (Throwable $e) {
-                    $audioUrl = null;
-                }
-            }
-
-            $dialogueService->addMessage($dialogueId, 'assistant', $reply, $audioUrl);
-
-            $responseData = [
-                'dialogue_id' => $dialogueId,
-                'reply' => $reply,
-                'audio_url' => $audioUrl,
-            ];
-
-            if ($tip !== '') {
-                $responseData['feedback'] = [
-                    'tip' => $tip,
-                ];
-            }
 
             Response::json([
-                'data' => $responseData,
+                'data' => $result,
             ]);
+        } catch (RuntimeException $e) {
+            Response::json([
+                'error' => $e->getMessage(),
+            ], $this->runtimeStatus($e));
         } catch (Throwable $e) {
             Response::json([
                 'error' => 'Chat service unavailable',
@@ -239,8 +201,7 @@ final class ApiController
 
     public function textToSpeech(): void
     {
-        $raw = file_get_contents('php://input');
-        $data = json_decode($raw ?: '[]', true);
+        $data = $this->jsonBody();
         $text = trim((string) ($data['text'] ?? ''));
 
         if ($text === '') {
@@ -264,6 +225,26 @@ final class ApiController
                 'details' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function jsonBody(): array
+    {
+        $raw = file_get_contents('php://input');
+        $decoded = json_decode($raw ?: '[]', true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function runtimeStatus(RuntimeException $e): int
+    {
+        return match ($e->getMessage()) {
+            'Message is required' => 422,
+            'Dialogue not found for user' => 404,
+            default => 400,
+        };
     }
 
     private function storeAudioBytes(string $bytes, string $extension): string
