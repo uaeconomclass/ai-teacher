@@ -59,6 +59,35 @@ final class ApiController
         }
     }
 
+    public function promptPreview(): void
+    {
+        $level = strtoupper(trim((string) ($_GET['level'] ?? 'A1')));
+        $topic = trim((string) ($_GET['topic'] ?? 'introductions'));
+        $grammarFocus = trim((string) ($_GET['grammar_focus'] ?? ''));
+        $mode = strtolower(trim((string) ($_GET['mode'] ?? 'conversation')));
+
+        try {
+            $openAIService = new OpenAIService();
+            $prompt = $openAIService->buildTutorSystemPrompt(
+                $level !== '' ? $level : 'A1',
+                $topic !== '' ? $topic : 'introductions',
+                $grammarFocus !== '' ? $grammarFocus : null,
+                $mode === 'lesson' ? 'lesson' : 'conversation'
+            );
+
+            Response::json([
+                'data' => [
+                    'prompt' => $prompt,
+                ],
+            ]);
+        } catch (Throwable $e) {
+            Response::json([
+                'error' => 'Prompt preview unavailable',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function startSession(): void
     {
         $raw = file_get_contents('php://input');
@@ -66,6 +95,7 @@ final class ApiController
 
         $level = strtoupper(trim((string) ($data['level'] ?? 'A1')));
         $topic = trim((string) ($data['topic'] ?? 'a1-introductions'));
+        $mode = strtolower(trim((string) ($data['mode'] ?? 'conversation')));
         $requestedUserId = (int) ($data['user_id'] ?? 0);
 
         try {
@@ -78,6 +108,7 @@ final class ApiController
                     'dialogue_id' => $dialogueId,
                     'level' => $level,
                     'topic' => $topic,
+                    'mode' => $mode === 'lesson' ? 'lesson' : 'conversation',
                 ],
             ]);
         } catch (Throwable $e) {
@@ -97,6 +128,7 @@ final class ApiController
         $level = trim((string) ($data['level'] ?? 'A1'));
         $topic = trim((string) ($data['topic'] ?? 'introductions'));
         $grammarFocus = trim((string) ($data['grammar_focus'] ?? ''));
+        $mode = strtolower(trim((string) ($data['mode'] ?? 'conversation')));
         $dialogueId = (int) ($data['dialogue_id'] ?? 0);
         $requestedUserId = (int) ($data['user_id'] ?? 0);
 
@@ -121,7 +153,13 @@ final class ApiController
 
             $dialogueService->addMessage($dialogueId, 'user', $message);
             $history = $dialogueService->recentMessages($dialogueId, 12);
-            $ai = $openAIService->tutorReply($level, $topic, $history, $grammarFocus !== '' ? $grammarFocus : null);
+            $ai = $openAIService->tutorReply(
+                $level,
+                $topic,
+                $history,
+                $grammarFocus !== '' ? $grammarFocus : null,
+                $mode === 'lesson' ? 'lesson' : 'conversation'
+            );
             $reply = trim((string) ($ai['reply'] ?? ''));
             $tip = trim((string) ($ai['tip'] ?? ''));
             $audioUrl = null;
@@ -139,15 +177,20 @@ final class ApiController
 
             $dialogueService->addMessage($dialogueId, 'assistant', $reply, $audioUrl);
 
+            $responseData = [
+                'dialogue_id' => $dialogueId,
+                'reply' => $reply,
+                'audio_url' => $audioUrl,
+            ];
+
+            if ($tip !== '') {
+                $responseData['feedback'] = [
+                    'tip' => $tip,
+                ];
+            }
+
             Response::json([
-                'data' => [
-                    'dialogue_id' => $dialogueId,
-                    'reply' => $reply,
-                    'audio_url' => $audioUrl,
-                    'feedback' => [
-                        'tip' => $tip,
-                    ],
-                ],
+                'data' => $responseData,
             ]);
         } catch (Throwable $e) {
             Response::json([

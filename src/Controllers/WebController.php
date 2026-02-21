@@ -28,22 +28,6 @@ final class WebController
       </div>
       <h1>Speak English<br>Every Day</h1>
       <p class="subtitle">Practice real conversation by level and topic with instant feedback.</p>
-      <div class="stats">
-        <div class="stat">
-          <span>Mode</span>
-          <strong>Speaking Practice</strong>
-        </div>
-        <div class="stat">
-          <span>Focus</span>
-          <strong>Fluency + Accuracy</strong>
-        </div>
-      </div>
-      <div class="chips">
-        <button type="button" class="chip" data-text="Hi! I want to practice introductions.">Intro</button>
-        <button type="button" class="chip" data-text="Can we practice daily routine?">Routine</button>
-        <button type="button" class="chip" data-text="Help me speak about travel plans.">Travel</button>
-      </div>
-      <p class="hint">Keep answers short and natural. Build confidence with daily sessions.</p>
     </aside>
 
     <section class="chat-panel">
@@ -55,6 +39,13 @@ final class WebController
       </header>
 
       <div class="controls">
+        <label>
+          <span>Mode</span>
+          <select id="mode">
+            <option value="conversation">Conversation</option>
+            <option value="lesson">Lesson (UKR -> EN)</option>
+          </select>
+        </label>
         <label>
           <span>Level</span>
           <select id="level">
@@ -74,6 +65,15 @@ final class WebController
           <span>Grammar Focus</span>
           <select id="grammar-focus"></select>
         </label>
+      </div>
+
+      <div class="prompt-preview">
+        <div class="prompt-head">
+          <strong>Prompt Preview</strong>
+          <button id="copy-prompt-btn" type="button">Copy Prompt</button>
+        </div>
+        <textarea id="prompt-preview-text" readonly></textarea>
+        <p id="prompt-copy-status" class="prompt-copy-status"></p>
       </div>
 
       <div id="messages" class="messages"></div>

@@ -13,6 +13,7 @@ $router->get('/', [WebController::class, 'home']);
 $router->get('/api/health', [ApiController::class, 'health']);
 $router->get('/api/topics', [ApiController::class, 'topics']);
 $router->get('/api/grammar-topics', [ApiController::class, 'grammarTopics']);
+$router->get('/api/prompt-preview', [ApiController::class, 'promptPreview']);
 $router->post('/api/session/start', [ApiController::class, 'startSession']);
 $router->post('/api/chat', [ApiController::class, 'chat']);
 $router->post('/api/speech-to-text', [ApiController::class, 'speechToText']);

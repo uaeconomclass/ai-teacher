@@ -1,3 +1,4 @@
+const modeSelect = document.getElementById('mode');
 const levelSelect = document.getElementById('level');
 const topicSelect = document.getElementById('topic');
 const grammarFocusSelect = document.getElementById('grammar-focus');
@@ -5,11 +6,13 @@ const form = document.getElementById('chat-form');
 const input = document.getElementById('message');
 const messages = document.getElementById('messages');
 const sendBtn = document.getElementById('send-btn');
-const chips = Array.from(document.querySelectorAll('.chip'));
 const recordBtn = document.getElementById('record-btn');
 const voiceModeBtn = document.getElementById('voice-mode-btn');
 const voiceStatus = document.getElementById('voice-status');
 const player = document.getElementById('player');
+const promptPreviewText = document.getElementById('prompt-preview-text');
+const copyPromptBtn = document.getElementById('copy-prompt-btn');
+const promptCopyStatus = document.getElementById('prompt-copy-status');
 
 let dialogueId = null;
 let isSending = false;
@@ -46,6 +49,28 @@ const setVoiceState = (text, recording = false) => {
   recordBtn.classList.toggle('recording', recording);
 };
 
+const setMessagePlaceholder = () => {
+  if (modeSelect.value === 'lesson') {
+    input.placeholder = 'Translate the Ukrainian sentence into English...';
+    return;
+  }
+  input.placeholder = 'Type your sentence in English...';
+};
+
+const loadPromptPreview = async () => {
+  const params = new URLSearchParams({
+    mode: modeSelect.value || 'conversation',
+    level: levelSelect.value || 'A1',
+    topic: topicSelect.value || '',
+    grammar_focus: grammarFocusSelect.value || '',
+  });
+
+  const res = await fetch(`/api/prompt-preview?${params.toString()}`);
+  const json = await res.json();
+  const prompt = json?.data?.prompt || '';
+  promptPreviewText.value = prompt;
+};
+
 const loadTopics = async () => {
   const level = levelSelect.value;
   const res = await fetch(`/api/topics?level=${encodeURIComponent(level)}`);
@@ -78,6 +103,7 @@ const loadGrammarTopics = async () => {
 
 const startSession = async () => {
   const payload = {
+    mode: modeSelect.value || 'conversation',
     level: levelSelect.value,
     topic: topicSelect.value || '',
   };
@@ -100,6 +126,7 @@ const sendChatMessage = async (message) => {
   setSending(true);
 
   const payload = {
+    mode: modeSelect.value || 'conversation',
     level: levelSelect.value,
     topic: topicSelect.value || 'introductions',
     grammar_focus: grammarFocusSelect.value || '',
@@ -309,6 +336,18 @@ const stopRecording = async () => {
   }
 };
 
+const restartSession = (readyMessage) => {
+  startSession()
+    .then(() => loadPromptPreview())
+    .then(() => {
+      messages.innerHTML = '';
+      appendMessage('ai', readyMessage);
+    })
+    .catch(() => {
+      appendMessage('ai', 'Failed to start session.');
+    });
+};
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const message = input.value.trim();
@@ -317,8 +356,17 @@ form.addEventListener('submit', async (e) => {
   await sendChatMessage(message);
 });
 
+modeSelect.addEventListener('change', () => {
+  setMessagePlaceholder();
+  const readyMessage = modeSelect.value === 'lesson'
+    ? 'Lesson mode ready. I will send a Ukrainian sentence, and you translate it to English.'
+    : 'New conversation session started.';
+  restartSession(readyMessage);
+});
+
 levelSelect.addEventListener('change', () => {
   Promise.all([loadTopics(), loadGrammarTopics()])
+    .then(() => loadPromptPreview())
     .then(() => startSession())
     .then(() => {
       messages.innerHTML = '';
@@ -330,22 +378,28 @@ levelSelect.addEventListener('change', () => {
 });
 
 topicSelect.addEventListener('change', () => {
-  startSession()
-    .then(() => {
-      messages.innerHTML = '';
-      appendMessage('ai', 'New session started.');
-    })
-    .catch(() => {
-      appendMessage('ai', 'Failed to start session.');
-    });
+  restartSession('New session started.');
 });
 
-chips.forEach((chip) => {
-  chip.addEventListener('click', () => {
-    const text = chip.getAttribute('data-text') || '';
-    input.value = text;
-    input.focus();
+grammarFocusSelect.addEventListener('change', () => {
+  loadPromptPreview().catch(() => {
+    promptPreviewText.value = 'Failed to load prompt preview.';
   });
+});
+
+copyPromptBtn.addEventListener('click', async () => {
+  const text = promptPreviewText.value.trim();
+  if (!text) {
+    promptCopyStatus.textContent = 'Nothing to copy yet.';
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    promptCopyStatus.textContent = 'Prompt copied.';
+  } catch (e) {
+    promptCopyStatus.textContent = 'Copy failed. Select text and copy manually.';
+  }
 });
 
 recordBtn.addEventListener('mousedown', () => { startRecording(); });
@@ -370,8 +424,12 @@ voiceModeBtn.addEventListener('click', async () => {
 
 loadTopics()
   .then(() => loadGrammarTopics())
+  .then(() => loadPromptPreview())
   .then(() => startSession())
-  .then(() => appendMessage('ai', 'Session ready. Start speaking.'))
+  .then(() => {
+    setMessagePlaceholder();
+    appendMessage('ai', 'Session ready. Start speaking.');
+  })
   .catch(() => {
     appendMessage('ai', 'Failed to initialize app.');
   });

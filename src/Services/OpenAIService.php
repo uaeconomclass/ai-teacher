@@ -29,26 +29,13 @@ final class OpenAIService
      * @param array<int, array{role: string, content: string}> $history
      * @return array{reply: string, tip: string}
      */
-    public function tutorReply(string $level, string $topic, array $history, ?string $grammarFocus = null): array
+    public function tutorReply(string $level, string $topic, array $history, ?string $grammarFocus = null, string $mode = 'conversation'): array
     {
         if ($this->apiKey === '') {
             throw new RuntimeException('OPENAI_API_KEY is missing');
         }
 
-        $grammarLine = $grammarFocus !== null && trim($grammarFocus) !== ''
-            ? "Grammar focus: {$grammarFocus}."
-            : "Grammar focus: keep corrections level-appropriate.";
-
-        $systemPrompt = <<<TEXT
-You are an English speaking tutor.
-Level: {$level}. Topic: {$topic}.
-{$grammarLine}
-Rules:
-- Keep reply concise (1-3 sentences).
-- Continue conversation naturally.
-- Correct only one high-impact mistake.
-- Return strict JSON object with keys: reply, tip.
-TEXT;
+        $systemPrompt = $this->buildTutorSystemPrompt($level, $topic, $grammarFocus, $mode);
 
         $messages = array_merge(
             [['role' => 'system', 'content' => $systemPrompt]],
@@ -76,8 +63,69 @@ TEXT;
 
         return [
             'reply' => trim($content) !== '' ? trim($content) : 'Let us continue. Tell me more.',
-            'tip' => 'Use one more detail in your next sentence.',
+            'tip' => '',
         ];
+    }
+
+    public function buildTutorSystemPrompt(string $level, string $topic, ?string $grammarFocus = null, string $mode = 'conversation'): string
+    {
+        $normalizedLevel = strtoupper(trim($level));
+        $normalizedTopic = trim($topic);
+        $normalizedMode = strtolower(trim($mode));
+        $challengeGuidance = $this->buildChallengeGuidance($normalizedLevel);
+
+        $grammarLine = $grammarFocus !== null && trim($grammarFocus) !== ''
+            ? 'Grammar focus: ' . trim($grammarFocus) . '.'
+            : 'Grammar focus: keep corrections level-appropriate.';
+
+        $modeBlock = $normalizedMode === 'lesson'
+            ? <<<TEXT
+Mode: lesson.
+Lesson workflow:
+- Give one short sentence in Ukrainian for translation to English.
+- Wait for student's translation.
+- Evaluate briefly: what is correct, one key fix if needed.
+- Provide a corrected English version when needed.
+- Then give the next Ukrainian sentence.
+- Keep each turn concise and practical.
+TEXT
+            : <<<TEXT
+Mode: conversation.
+Conversation workflow:
+- Continue conversation naturally on the selected topic.
+- Keep replies concise and level-appropriate.
+TEXT;
+
+        return <<<TEXT
+You are an English speaking tutor.
+Level: {$normalizedLevel}. Topic: {$normalizedTopic}.
+{$grammarLine}
+{$challengeGuidance}
+{$modeBlock}
+Rules:
+- Keep reply concise (1-3 sentences).
+- Follow the active mode workflow above.
+- Correct only one high-impact mistake.
+- Add tip only when truly needed: recurring or blocking mistake.
+- Return strict JSON object with keys: reply, tip.
+- If tip is not needed, return tip as empty string.
+TEXT;
+    }
+
+    private function buildChallengeGuidance(string $level): string
+    {
+        $levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+        $index = array_search($level, $levels, true);
+
+        if ($index === false) {
+            return 'Tutor language target: around one-half level above learner when possible, while staying understandable.';
+        }
+
+        if ($level === 'C2') {
+            return 'Tutor language target: C2 clarity and precision, but always keep instructions practical and clear.';
+        }
+
+        return "Tutor language target: {$level}+ (half-step above learner). Keep language slightly harder than learner level, but still understandable.";
     }
 
     public function transcribeAudio(string $filePath, string $mimeType = 'audio/webm', ?string $originalName = null): string
